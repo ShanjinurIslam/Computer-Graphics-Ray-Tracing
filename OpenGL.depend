@@ -1,0 +1,38 @@
+# depslib dependency file v1.0
+1561212087 source:c:\users\spondon\desktop\opengl_codeblocks\opengl_codeblocks\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<windows.h>
+	<glut.h>
+
+1561212087 c:\users\spondon\desktop\opengl_codeblocks\opengl_codeblocks\opengl\include\glut.h
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+
+1561216637 source:c:\users\spondon\desktop\opengl_codeblocks\computer graphics - simple pendulam motion\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<windows.h>
+	<glut.h>
+
+1561212087 c:\users\spondon\desktop\opengl_codeblocks\computer graphics - simple pendulam motion\opengl\include\glut.h
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+
+1563989922 source:d:\graphics offline\offline3\ray tracing\main.cpp
+	<iostream>
+	<windows.h>
+	<glut.h>
+	<cmath>
+	<fstream>
+	<vector>
+
+1561212087 d:\graphics offline\offline3\ray tracing\opengl\include\glut.h
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+
