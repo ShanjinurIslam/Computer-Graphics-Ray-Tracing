@@ -19,6 +19,8 @@
 
 using namespace std ;
 
+double plane_height=500;
+double plane_width=500;
 double width, height;
 double recursionLevel;
 double cameraHeight;
@@ -53,6 +55,10 @@ public:
         this->z = v.z;
 
         return *this;
+    }
+
+    void print(){
+        cout<<"( "<<x<<" , "<<y<<" , "<<z<<" )"<<endl;
     }
 
 }pos;
@@ -143,7 +149,17 @@ public:
     }
 }u,l,r;
 
+Point lineParametric(Point p,Vector v,double t){
+    Point new_point ;
+    new_point.x = p.x + v.ax*t ;
+    new_point.y = p.y + v.ay*t ;
+    new_point.z = p.z + v.az*t ;
+
+    return new_point ;
+}
+
 class Ray{
+public:
     Point point ;
     Vector vector ;
     Ray(){
@@ -215,6 +231,10 @@ public:
             corner[i] = Point() ;
         }
         color = Color() ;
+    }
+
+    ~Square(){
+        delete[] corner;
     }
 
     Square(Point start,double side_length,Color color){
@@ -401,6 +421,7 @@ void drawAxes()
 
 void init()
 {
+    cameraAngle=80;
     pos = Point(50, 50, 50);
     u = Vector(0, 0, 1); //z axis is up vector
     l = Vector(-1 / (sqrt(2)), -1 / sqrt(2), 0);
@@ -411,7 +432,7 @@ void init()
     glClearColor(0, 0, 0, 0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(80, 1, 1, 1000.0);
+    gluPerspective(cameraAngle, 1, 1, 1000.0);
 }
 
 
@@ -446,6 +467,39 @@ void animate()
 {
     glutPostRedisplay();
 }
+
+void generateRayTracedImage(){
+
+    double near_plane_distance = (plane_height/2.0)*0.8391;
+    Vector new_l = l*near_plane_distance ;
+    Vector new_r = r*(-1.0*(plane_height/2.0)) ;
+    Vector new_u = u*(plane_width/2.0) ;
+    Vector resultant = new_l+new_r+new_u ;
+    Point top_left = lineParametric(pos,resultant,1);
+
+    double pixel_x = plane_height/height ;
+    double pixel_y = plane_width/width ;
+
+    int image_height = (int) height ;
+    int image_width = (int) width ;
+
+    bitmap_image image(image_height,image_width);
+
+    for(int i=0;i<image_height;i++){
+        for(int j=0;j<image_width;j++){
+            Point point ;
+            Vector n_u = u*(-1.0*i*pixel_x);
+            Vector n_r = r*(j*pixel_y);
+            Vector n_resultant = n_u + n_r ;
+            point = lineParametric(top_left,n_resultant,1);
+            Vector v = Vector().generateVector(pos,point);
+            Ray ray(pos,v);
+            image.set_pixel(i, j, rand()%255, 0,0);
+        }
+    }
+
+    image.save_image("out.bmp");
+}
 void keyboardListener(unsigned char key, int x, int y)
 {
     /*
@@ -462,6 +516,9 @@ void keyboardListener(unsigned char key, int x, int y)
 
     switch (key)
     {
+        case '0':
+            generateRayTracedImage() ;
+            break ;
         case '1':
             r.ax = r.ax * cos(-1.0 * angle) + l.ax * sin(-1.0 * angle);
             r.ay = r.ay * cos(-1.0 * angle) + l.ay * sin(-1.0 * angle);
@@ -553,7 +610,7 @@ int main(int argc, char **argv)
 
     cin>>recursionLevel ;
     cin>>width ;
-    width = height;
+    height = width;
     cin>>items ;
 
     for(int i=0;i<items;i++){

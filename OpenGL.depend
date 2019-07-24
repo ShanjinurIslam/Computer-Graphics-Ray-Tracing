@@ -23,16 +23,27 @@
 	<GL/gl.h>
 	<GL/glu.h>
 
-1563989922 source:d:\graphics offline\offline3\ray tracing\main.cpp
+1563994020 source:d:\graphics offline\offline3\ray tracing\main.cpp
 	<iostream>
 	<windows.h>
 	<glut.h>
 	<cmath>
 	<fstream>
 	<vector>
+	"bitmap_image.hpp"
 
 1561212087 d:\graphics offline\offline3\ray tracing\opengl\include\glut.h
 	<windows.h>
 	<GL/gl.h>
 	<GL/glu.h>
+
+1532786315 d:\graphics offline\offline3\ray tracing\bitmap_image.hpp
+	<algorithm>
+	<cmath>
+	<cstdlib>
+	<fstream>
+	<iostream>
+	<iterator>
+	<limits>
+	<string>
 
