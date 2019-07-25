@@ -19,8 +19,8 @@
 
 using namespace std ;
 
-double plane_height=500;
-double plane_width=500;
+double plane_height=8;
+double plane_width=8;
 double width, height;
 double recursionLevel;
 double cameraHeight;
@@ -161,18 +161,18 @@ Point lineParametric(Point p,Vector v,double t){
 class Ray{
 public:
     Point point ;
-    Vector vector ;
+    Vector dir ;
     Ray(){
         this->point = Point() ;
-        this->vector = Vector() ;
+        this->dir = Vector() ;
     }
     Ray(Point p,Vector v){
         this->point = p ;
-        this->vector = v ;
+        this->dir = v ;
     }
 
     Ray(Point a,Point b){
-        vector = vector.generateVector(a,b) ;
+        dir = dir.generateVector(a,b) ;
     }
 };
 
@@ -183,6 +183,10 @@ public:
         this->red   = red ;
         this->green = green ;
         this->blue  = blue ;
+    }
+
+    void printColor(){
+        cout<<red<<" "<<green<<" "<<blue<<endl ;
     }
 };
 
@@ -209,6 +213,14 @@ public:
         this->color = v.color ;
 
         return *this;
+    }
+
+    double getT(Ray r){
+
+    }
+
+    double getColor(Ray r){
+
     }
 
     void draw(){
@@ -300,8 +312,15 @@ public:
         }
     }
 
+    double getT(Ray r){
+
+    }
+
+    double getColor(Ray r){
+
+    }
+
     void draw(){
-        bottom.draw() ;
         for(int i=0;i<4;i++){
             sides[i].draw();
         }
@@ -318,6 +337,36 @@ public:
         this->center = center ;
         this->radius = radius ;
         this->color = color ;
+    }
+
+    double getT(Ray r){
+        Vector r0 = Vector().generateVector(center,r.point);
+        Vector rd = r.dir ;
+        double a = 1 ;
+        double b = 2*r0.dot(rd);
+        double c = r0.dot(r0)- radius*radius;
+        double d = b*b - (4*a*c) ;
+
+        if(d<0){
+            return -1 ;
+        }
+
+        double alpha = (-b + sqrt(d))/2 ;
+        double beta = (-b - sqrt(d))/2 ;
+
+        double t = min(alpha,beta);
+
+        if(t<=0){
+            t = max(alpha,beta);
+        }
+
+        return t ;
+    }
+
+    double getColor(Ray r){
+        double t = getT(r);
+        if(t<=0) return -1;
+        else return t;
     }
 
     void drawSphere(double radius, int slices, int stacks)
@@ -376,6 +425,25 @@ public:
             }
         }
     }
+
+    double getT(Ray r){
+        return -(Vector(0,0,1).dot(Vector().generateVector(Point(0,0,0),r.point))/Vector(0,0,1).dot(r.dir));
+    }
+
+    double getColor(Ray r){
+        double t = getT(r) ;
+        if(t<=0) return -1 ;
+        else return t ;
+    }
+
+    Color getTileColor(Point p){
+        int c = color_map[(int)floor((p.x/30.0))+50][(int)floor((p.y/30.0))+50] ;
+        if(c){
+            return Color(0,0,0) ;
+        }
+        else return Color(1,1,1);
+    }
+
     void draw(){
         int flag=1;
         for(double i=-30*50;i<=30*50;i+=30){
@@ -384,7 +452,7 @@ public:
                     Square(Point(i,j,0),30,Color(0,0,0)).draw();
                 }
                 else{
-                    Square(Point(i,j,0),30,Color(255,255,255)).draw();
+                    Square(Point(i,j,0),30,Color(1,1,1)).draw();
                 }
                 flag++;
             }
@@ -395,30 +463,6 @@ public:
 vector<Pyramid> pyramids ;
 vector<Sphere> spheres ;
 ChessBoard chessboard ;
-
-
-//test purpose
-void drawAxes()
-{
-    glPushMatrix();
-    glBegin(GL_LINES);
-    {
-        glColor3f(1.0, 0, 0);
-        glVertex3f(100, 0, 0);
-        glVertex3f(-100, 0, 0);
-
-        glColor3f(0, 1.0, 0);
-        glVertex3f(0, -100, 0);
-        glVertex3f(0, 100, 0);
-
-        glColor3f(0, 0, 1.0);
-        glVertex3f(0, 0, 100);
-        glVertex3f(0, 0, -100);
-    }
-    glEnd();
-    glPopMatrix();
-}
-
 void init()
 {
     cameraAngle=80;
@@ -434,7 +478,6 @@ void init()
     glLoadIdentity();
     gluPerspective(cameraAngle, 1, 1, 1000.0);
 }
-
 
 void display()
 {
@@ -469,7 +512,6 @@ void animate()
 }
 
 void generateRayTracedImage(){
-
     double near_plane_distance = (plane_height/2.0)*0.8391;
     Vector new_l = l*near_plane_distance ;
     Vector new_r = r*(-1.0*(plane_height/2.0)) ;
@@ -493,12 +535,35 @@ void generateRayTracedImage(){
             Vector n_resultant = n_u + n_r ;
             point = lineParametric(top_left,n_resultant,1);
             Vector v = Vector().generateVector(pos,point);
+            v.normalize();
             Ray ray(pos,v);
-            image.set_pixel(i, j, rand()%255, 0,0);
+            double t_min = INT_MAX ;
+
+            for(int k=0;k<spheres.size();k++){
+                double t = spheres[k].getColor(ray);
+                if(t>0){
+                    if(t_min>t){
+                        t_min = t;
+                        Color c = spheres[k].color ;
+                        image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                    }
+                }
+            }
+
+            double t = chessboard.getColor(ray) ;
+            if(t>0){
+                if(t_min>t){
+                    t_min = t;
+                    Color c = chessboard.getTileColor(lineParametric(ray.point,ray.dir,t));
+                    image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                }
+            }
+
         }
     }
 
     image.save_image("out.bmp");
+    printf("Image generated\n");
 }
 void keyboardListener(unsigned char key, int x, int y)
 {
@@ -607,7 +672,6 @@ int main(int argc, char **argv)
     int items ;
     string item_type;
     freopen("input.txt","r",stdin);
-
     cin>>recursionLevel ;
     cin>>width ;
     height = width;
