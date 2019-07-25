@@ -19,8 +19,8 @@
 
 using namespace std ;
 
-double plane_height=8;
-double plane_width=8;
+double plane_height=500;
+double plane_width=500;
 double width, height;
 double recursionLevel;
 double cameraHeight;
@@ -221,16 +221,39 @@ public:
         return n ;
     }
 
+    Vector getCross(Point a,Point b,Point c){
+         Vector v1 = Vector().generateVector(a,b) ;
+         Vector v2 = Vector().generateVector(a,c) ;
+
+         Vector r = v1.cross(v2) ;
+
+         return r ;
+    }
+
     double getT(Ray r){
         Vector n = normal() ;
-        double d = -(n.ax*a.x + n.ay*a.y + n.az*a.z) ;
-        double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point))/n.dot(r.dir));
-        Point p = lineParametric(r.point,r.dir,t);
-        //
+        double d = -(n.ax*c.x + n.ay*c.y + n.az*c.z) ;
+        double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point)))/n.dot(r.dir));
+        Point p = lineParametric(r.point,r.dir,t) ;
+
+        Vector v1 = Vector().generateVector(a,b);
+        Vector v2 = Vector().generateVector(a,c);
+
+        Vector i,j,k ;
+
+        i = getCross(a,b,p) ;
+        j = getCross(b,c,p) ;
+        k = getCross(c,a,p) ;
+
+        if(i.dot(j)>=1 && i.dot(k)>=1) return t ;
+
+        return -1 ;
     }
 
     double getColor(Ray r){
-
+        double t = getT(r) ;
+        if(t<=0) return -1 ;
+        else return t ;
     }
 
     void draw(){
@@ -306,7 +329,7 @@ public:
         this->low = low ;
         this->height = height ;
         this->width = width ;
-
+        this->color = color ;
         for(int i=0;i<4;i++){
             sides[i] = Triangle() ;
         }
@@ -320,14 +343,6 @@ public:
         for(int i=0;i<4;i++){
             sides[i] = Triangle(corners[i],corners[(i+1)%4],top,color) ;
         }
-    }
-
-    double getT(Ray r){
-
-    }
-
-    double getColor(Ray r){
-
     }
 
     void draw(){
@@ -560,6 +575,20 @@ void generateRayTracedImage(){
                 }
             }
 
+
+            for(int k=0;k<pyramids.size();k++){
+                for(int m=0;m<4;m++){
+                    double t = pyramids[k].sides[m].getColor(ray);
+                    if(t>0){
+                        if(t_min>t){
+                            t_min = t;
+                            Color c = pyramids[k].color ;
+                            image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                        }
+                    }
+                }
+            }
+
             double t = chessboard.getColor(ray) ;
             if(t>0){
                 if(t_min>t){
@@ -568,7 +597,6 @@ void generateRayTracedImage(){
                     image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
                 }
             }
-
         }
     }
 
