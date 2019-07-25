@@ -7,7 +7,8 @@
 //
 #define GL_SILENCE_DEPRECATION
 #include <iostream>
-#include <GLUT/glut.h>
+#include <windows.h>
+#include <glut.h>
 #include <cmath>
 #include <fstream>
 #include <vector>
@@ -35,7 +36,7 @@ public:
         this->y = y;
         this->z = z;
     }
-    
+
     Point operator+(Point v)
     {
         Point temp;
@@ -44,7 +45,7 @@ public:
         temp.z = this->z + v.z;
         return temp;
     }
-    
+
     Point operator-(Point v)
     {
         Point temp;
@@ -53,39 +54,39 @@ public:
         temp.z = this->z - v.z;
         return temp;
     }
-    
+
     Point &operator=(Point v)
     {
         this->x = v.x;
         this->y = v.y;
         this->z = v.z;
-        
+
         return *this;
     }
-    
+
     double distance(Point a){
         Point tem = *this - a ;
         return abs(sqrt(tem.x*tem.x+tem.y*tem.y+tem.z*tem.z)) ;
     }
-    
+
     void print(){
         cout<<"( "<<x<<" , "<<y<<" , "<<z<<" )"<<endl;
     }
-    
+
 }pos;
 
 class Vector
 {
 public:
     double ax, ay, az;
-    
+
     Vector(double ax=0, double ay=0, double az=0)
     {
         this->ax = ax;
         this->ay = ay;
         this->az = az;
     }
-    
+
     void normalize()
     {
         double r = sqrt((ax * ax) + (ay * ay) + (az * az));
@@ -93,36 +94,36 @@ public:
         ay = ay / r;
         az = az / r;
     }
-    
+
     Vector operator+(Vector v)
     {
         Vector temp;
         temp.ax = this->ax + v.ax;
         temp.ay = this->ay + v.ay;
         temp.az = this->az + v.az;
-        
+
         return temp;
     }
-    
+
     Vector operator-(Vector v)
     {
         Vector temp;
         temp.ax = this->ax - v.ax;
         temp.ay = this->ay - v.ay;
         temp.az = this->az - v.az;
-        
+
         return temp;
     }
-    
+
     Vector &operator=(Vector v)
     {
         this->ax = v.ax;
         this->ay = v.ay;
         this->az = v.az;
-        
+
         return *this;
     }
-    
+
     Vector operator*(double d)
     {
         Vector temp;
@@ -135,12 +136,12 @@ public:
     {
         cout << ax << " " << ay << " " << az << endl;
     }
-    
+
     double dot(Vector x)
     {
         return (this->ax * x.ax) + (this->ay * x.ay) + (this->az * x.az);
     }
-    
+
     Vector cross(Vector x)
     {
         Vector temp;
@@ -149,13 +150,13 @@ public:
         temp.az = (ax * x.ay - ay * x.ax);
         return temp;
     }
-    
+
     Vector generateVector(Point a,Point b){ //to generate vector AB
         Vector temp ;
         temp.ax = b.x - a.x ;
         temp.ay = b.y - a.y ;
         temp.az = b.z - a.z ;
-        
+
         return temp ;
     }
 }u,l,r;
@@ -165,7 +166,7 @@ Point lineParametric(Point p,Vector v,double t){
     new_point.x = p.x + v.ax*t ;
     new_point.y = p.y + v.ay*t ;
     new_point.z = p.z + v.az*t ;
-    
+
     return new_point ;
 }
 
@@ -181,7 +182,7 @@ public:
         this->point = p ;
         this->dir = v ;
     }
-    
+
     Ray(Point a,Point b){
         dir = dir.generateVector(a,b) ;
     }
@@ -195,7 +196,7 @@ public:
         this->green = green ;
         this->blue  = blue ;
     }
-    
+
     Color operator+(Color a){
         Color temp;
         temp.red = this->red+a.red;
@@ -203,7 +204,7 @@ public:
         temp.blue = this->blue+a.blue;
         return temp;
     }
-    
+
     Color operator+(double a){
         Color temp;
         temp.red = this->red+a;
@@ -211,7 +212,7 @@ public:
         temp.blue = this->blue+a;
         return temp;
     }
-    
+
     Color operator*(double a)
     {
         Color temp;
@@ -220,16 +221,16 @@ public:
         temp.blue = this->blue*a;
         return temp;
     }
-    
+
     Color &operator=(Color c)
     {
         this->red = c.red;
         this->green = c.green;
         this->blue = c.blue;
-        
+
         return *this;
     }
-    
+
     void printColor(){
         cout<<red*255<<" "<<green*255<<" "<<blue*255<<endl ;
     }
@@ -255,68 +256,68 @@ public:
     Color color ;
     Triangle(){
     }
-    
+
     Triangle(Point a,Point b,Point c,Color color){
         this->color = color ;
         this->a = a ;
         this->b = b ;
         this->c = c ;
     }
-    
+
     Triangle &operator=(Triangle v)
     {
         this->a = v.a ;
         this->b = v.b ;
         this->c = v.c ;
-        
+
         return *this;
     }
-    
+
     Vector normal(){
         Vector n =  Vector().generateVector(a,b).cross(Vector().generateVector(a,c));
         n.normalize() ;
         return n ;
     }
-    
+
     Vector normal(Vector r){
         Vector n =  Vector().generateVector(a,b).cross(Vector().generateVector(a,c));
         if(n.dot(r)>0) n = n*-1 ;
         n.normalize() ;
         return n ;
     }
-    
+
     Vector getCross(Point a,Point b,Point c){
         Vector v1 = Vector().generateVector(a,b) ;
         Vector v2 = Vector().generateVector(a,c) ;
-        
+
         Vector r = v1.cross(v2) ;
-        
+
         return r ;
     }
-    
+
     double getT(Ray r){
         Vector n = normal() ;
         double d = -(n.ax*c.x + n.ay*c.y + n.az*c.z) ;
         double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point)))/n.dot(r.dir));
         Point p = lineParametric(r.point,r.dir,t) ;
-        
+
         Vector i,j,k ;
-        
+
         i = getCross(a,b,p) ;
         j = getCross(b,c,p) ;
         k = getCross(c,a,p) ;
-        
+
         if(i.dot(j)>=1 && i.dot(k)>=1) return t ;
-        
+
         return -1 ;
     }
-    
+
     double getColor(Ray r){
         double t = getT(r) ;
         if(t<=0) return -1 ;
         else return t ;
     }
-    
+
     void draw(){
         glBegin(GL_TRIANGLES);
         glVertex3d(a.x,a.y,a.z);
@@ -337,11 +338,11 @@ public:
         }
         color = Color() ;
     }
-    
+
     ~Square(){
         delete[] corner;
     }
-    
+
     Square(Point start,double side_length,Color color){
         corner = new Point[4] ;
         for(int i=0;i<4;i++){
@@ -353,7 +354,7 @@ public:
         corner[2] = corner[1] + Point(0,side_length,0);
         corner[3] = corner[0] + Point(0,side_length,0);
     }
-    
+
     Square &operator=(Square s)
     {
         for(int i=0;i<4;i++){
@@ -362,7 +363,7 @@ public:
         color = s.color ;
         return *this ;
     }
-    
+
     void draw() {
         glColor3f(color.red,color.green,color.blue);
         glBegin(GL_QUADS);
@@ -379,13 +380,13 @@ public:
 
 class Pyramid:public Object{
 public:
-    
+
     int side_index;
     Point low,top;
     double height,width ;
     Triangle sides[4];
     Square bottom ;
-    
+
     Pyramid(Point low,double width,double height,Color color,double a,double d,double s,double r,double shine){
         this->a = a ;
         this->d = d ;
@@ -401,18 +402,18 @@ public:
         for(int i=0;i<4;i++){
             sides[i] = Triangle() ;
         }
-        
+
         top = low + Point(width/2,width/2,height);
         bottom = Square(low,width,color) ;
-        
+
         Point *corners = new Point[4] ;
         corners = bottom.getCornerPoints() ;
-        
+
         for(int i=0;i<4;i++){
             sides[i] = Triangle(corners[i],corners[(i+1)%4],top,color) ;
         }
     }
-    
+
     double getT(Ray r){
         double t_min = INT_MAX ;
         for(int m=0;m<4;m++){
@@ -424,10 +425,10 @@ public:
                 }
             }
         }
-        
+
         return t_min ;
     }
-    
+
     double getColor(Ray r,Color *out_color,int level){
         double t = getT(r);
         if(t<=0) return -1;
@@ -457,23 +458,24 @@ public:
                 Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
                 double lambert = l_r.dir.dot(n);
                 double phong = pow((r.dir*-1).dot(light_ref),shine) ;
-                
+
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
-                
+
                 *out_color = *out_color + (lambert*d + phong*s) ;
             }
         }
-        
+
         if(level<recursionLevel)
         {
             Point start = lineParametric(ip,ref,1) ;
-            Point far = lineParametric(ip,ref,2);
-            Vector v = Vector().generateVector(start,far) ;
+            Point other = lineParametric(ip,ref,2);
+            Vector v = Vector().generateVector(start,other) ;
+
             v.normalize() ;
             Ray reflectionRay(start,v);
             double t_min=INT_MAX;
-            
+
             for(int k=0;k<objects.size();k++){
                 Color *c = new Color();
                 if(objects[k]->type==1){
@@ -499,18 +501,18 @@ public:
                 }
                 delete c;
             }
-            
+
         }
         return t ;
     }
-    
+
     void draw(){
         glColor3d(color.red,color.green,color.blue) ;
         for(int i=0;i<4;i++){
             sides[i].draw();
         }
     }
-    
+
     Color getTileColor(Point p){
         return Color(0,0,0);
     }
@@ -520,7 +522,7 @@ class Sphere:public Object{
 public:
     Point center ;
     double radius;
-    
+
     Sphere(Point center,double radius,Color color,double a,double d,double s,double ref,double shine){
         this->a = a ;
         this->d = d ;
@@ -532,39 +534,39 @@ public:
         this->color = color ;
         this->type = 1 ;
     }
-    
+
     double getT(Ray r){
-        
+
         Vector r0 = Vector().generateVector(center,r.point);
         Vector rd = r.dir ;
         double a = 1 ;
         double b = 2*r0.dot(rd);
         double c = r0.dot(r0)- radius*radius;
         double d = b*b - (4*a*c) ;
-        
+
         if(d<0){
             return -1 ;
         }
-        
+
         double alpha = (-b + sqrt(d))/2 ;
         double beta = (-b - sqrt(d))/2 ;
-        
+
         double t = min(alpha,beta);
-        
+
         if(t<=0){
             t = max(alpha,beta);
         }
-        
+
         return t ;
     }
-    
+
     double getColor(Ray r,Color *out_color,int level){
         double t = getT(r);
         *out_color = this->color * a ;
         if(t<=0) return -1;
-        
+
         if(level==0)return t;
-        
+
         Point ip = lineParametric(r.point,r.dir,t) ;
         Vector n = Vector().generateVector(center,ip);
         n.normalize() ;
@@ -590,23 +592,23 @@ public:
                 Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
                 double lambert = l_r.dir.dot(n);
                 double phong = pow((r.dir*-1).dot(light_ref),shine) ;
-                
+
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
-                
+
                 *out_color = *out_color + (lambert*d + phong*s) ;
             }
         }
-        
+
         if(level<recursionLevel)
         {
             Point start = lineParametric(ip,ref,1) ;
-            Point far = lineParametric(ip,ref,2);
-            Vector v = Vector().generateVector(start,far) ;
+            Point other = lineParametric(ip,ref,2);
+            Vector v = Vector().generateVector(start,other) ;
             v.normalize() ;
             Ray reflectionRay(start,v);
             double t_min=INT_MAX;
-            
+
             for(int k=0;k<objects.size();k++){
                 Color *c = new Color();
                 if(objects[k]->type==1){
@@ -632,11 +634,11 @@ public:
                 }
                 delete c;
             }
-            
+
         }
         return t ;
     }
-    
+
     void drawSphere(double radius, int slices, int stacks)
     {
         Point p[stacks + 1][slices + 1];
@@ -670,7 +672,7 @@ public:
         }
         glPopMatrix();
     }
-    
+
     void draw(){
         glPushMatrix() ;
         glTranslated(center.x,center.y,center.z);
@@ -678,7 +680,7 @@ public:
         drawSphere(radius,25,25);
         glPopMatrix() ;
     }
-    
+
     Color getTileColor(Point p){
         return Color(0,0,0);
     }
@@ -698,22 +700,22 @@ public:
             }
         }
     }
-    
+
     double getT(Ray r){
         return -(Vector(0,0,1).dot(Vector().generateVector(Point(0,0,0),r.point))/Vector(0,0,1).dot(r.dir));
     }
-    
+
     double getColor(Ray r,Color *out_color,int level){
         double t = getT(r);
-        
+
         if(t<=0) return -1;
         if(level==0)return t;
-        
+
         Point ip = lineParametric(r.point,r.dir,t) ;
-        
+
         Vector n = Vector(0,0,1);
         Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
-        
+
         if((ip.x>=-750 && ip.x<=750) && (ip.y>=-750 && ip.y<=750)){
             *out_color = getTileColor(ip) * 0.4 ;
             for(int i=0;i<lights.size();i++){
@@ -737,26 +739,26 @@ public:
                     Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
                     double lambert = l_r.dir.dot(n);
                     double phong = pow((r.dir*-1).dot(light_ref),5) ;
-                    
+
                     lambert = max(lambert,0.0);
                     phong = max(phong,0.0);
-                    
+
                     *out_color = *out_color + (lambert*0.2 + phong*0.2) ;
                 }
             }
         }
-        
-        
-        
+
+
+
         if(level<recursionLevel)
         {
             Point start = lineParametric(ip,ref,1) ;
-            Point far = lineParametric(ip,ref,2);
-            Vector v = Vector().generateVector(start,far) ;
+            Point other = lineParametric(ip,ref,2);
+            Vector v = Vector().generateVector(start,other) ;
             v.normalize() ;
             Ray reflectionRay(start,v);
             double t_min=INT_MAX;
-            
+
             for(int k=0;k<objects.size();k++){
                 Color *c = new Color();
                 if(objects[k]->type==1){
@@ -783,12 +785,12 @@ public:
                 delete c;
             }
         }
-        
+
         return t ;
     }
-    
-    
-    
+
+
+
     Color getTileColor(Point p){
         if(color_map[(int)floor(p.x/30.0)+25][(int)floor(p.y/30.0)+25]){
             return Color(0,0,0) ;
@@ -797,7 +799,7 @@ public:
             return Color(1,1,1) ;
         }
     }
-    
+
     void draw(){
         int flag=1;
         for(double i=-30*25;i<=30*25;i+=30){
@@ -838,21 +840,21 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(pos.x, pos.y, pos.z, pos.x + l.ax, pos.y + l.ay, pos.z + l.az, u.ax, u.ay, u.az);
-    
+
     glMatrixMode(GL_MODELVIEW);
-    
+
     glPushMatrix();
-    
+
     for(int i=0;i<objects.size();i++){
         objects[i]->draw() ;
     }
-    
+
     glPopMatrix();
-    
+
     glutSwapBuffers();
 }
 void animate()
@@ -867,15 +869,15 @@ void generateRayTracedImage(){
     Vector new_u = u*(plane_width/2.0) ;
     Vector resultant = new_l+new_r+new_u ;
     Point top_left = lineParametric(pos,resultant,1);
-    
+
     double pixel_x = plane_height/height ;
     double pixel_y = plane_width/width ;
-    
+
     int image_height = (int) height ;
     int image_width = (int) width ;
-    
+
     bitmap_image image(image_height,image_width);
-    
+
     for(int i=0;i<image_height;i++){
         for(int j=0;j<image_width;j++){
             Point point ;
@@ -887,7 +889,7 @@ void generateRayTracedImage(){
             v.normalize();
             Ray ray(pos,v);
             double t_min = INT_MAX ;
-            
+
             for(int k=0;k<objects.size();k++){
                 Color *c = new Color();
                 if(objects[k]->type==1){
@@ -914,7 +916,7 @@ void generateRayTracedImage(){
                 }
                 delete c;
             }
-            
+
             /*for(int k=0;k<spheres.size();k++){
              double t = spheres[k].getColor(ray);
              if(t>0){
@@ -925,8 +927,8 @@ void generateRayTracedImage(){
              }
              }
              }
-             
-             
+
+
              for(int k=0;k<pyramids.size();k++){
              double t = pyramids[k].getColor(ray);
              if(t>0){
@@ -937,7 +939,7 @@ void generateRayTracedImage(){
              }
              }
              }
-             
+
              double t = chessboard.getColor(ray) ;
              if(t>0){
              if(t_min>t){
@@ -948,7 +950,7 @@ void generateRayTracedImage(){
              }*/
         }
     }
-    
+
     image.save_image("out.bmp");
     printf("Image generated\n");
 }
@@ -960,12 +962,12 @@ void keyboardListener(unsigned char key, int x, int y)
      |
      |
      L ______ R
-     
+
      1. Rotating will not change the UP vector but will change the LOOK Vector and RIGHT Vector.
      2. Looking up/down not change the RIGHT vector but will change the LOOK Vector and RIGHT Vector.
      3. Tilt not change the LOOK vector but will change the UP Vector and RIGHT Vector.
      */
-    
+
     switch (key)
     {
         case '0':
@@ -1007,7 +1009,7 @@ void keyboardListener(unsigned char key, int x, int y)
             u.az = u.az * cos(-1.0 * angle) + r.az * sin(-1.0 * angle);
             r = l.cross(u);
             break;
-            
+
         default:
             break;
     }
@@ -1026,7 +1028,7 @@ void specialKeyListener(int key, int x, int y)
             pos.y -= l.ay * increment;
             pos.z -= l.az * increment;
             break;
-            
+
         case GLUT_KEY_LEFT:
             pos.x -= r.ax * increment; //as right vector is perpendicular to up vector linear shifting with negative incrementing value linearly will change position of eye left side
             pos.y -= r.ay * increment;
@@ -1037,7 +1039,7 @@ void specialKeyListener(int key, int x, int y)
             pos.y += r.ay * increment;
             pos.z += r.az * increment;
             break;
-            
+
         case GLUT_KEY_PAGE_UP:
             pos.x += u.ax * increment;
             pos.y += u.ay * increment;
@@ -1048,7 +1050,7 @@ void specialKeyListener(int key, int x, int y)
             pos.y -= u.ay * increment;
             pos.z -= u.az * increment; // shifting of position of eye on in z axis
             break;
-            
+
         default:
             break;
     }
@@ -1063,7 +1065,7 @@ int main(int argc, char **argv)
     cin>>width ;
     height = width;
     cin>>items ;
-    
+
     for(int i=0;i<items;i++){
         double a,d,s,r,shine;
         cin>>item_type ;
@@ -1079,7 +1081,7 @@ int main(int argc, char **argv)
             Pyramid *pyramid = new Pyramid(low,width,height,color,a,d,s,r,shine);
             objects.push_back(pyramid);
         }
-        
+
         if(item_type=="sphere"){
             Point center;
             cin>>center.x>>center.y>>center.z;
@@ -1093,7 +1095,7 @@ int main(int argc, char **argv)
             objects.push_back(sphere);
         }
     }
-    
+
     cin>>items ;
     for(int i=0;i<items;i++){
         Point low;
@@ -1101,7 +1103,7 @@ int main(int argc, char **argv)
         lights.push_back(Point(low.x,low.y,low.z));
         lights[i].print() ;
     }
-    
+
     glutInit(&argc, argv);
     glutInitWindowSize(500, 500);
     glutInitWindowPosition(0, 0);
