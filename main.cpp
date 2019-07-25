@@ -13,8 +13,6 @@
 #include <fstream>
 #include <vector>
 #include "bitmap_image.hpp"
-
-#define GL_SILENCE_DEPRECATION
 #define pi acos(-1.0)
 
 using namespace std ;
@@ -190,19 +188,30 @@ public:
     }
 };
 
+class Object{
+public:
+    int type ;
+    Color color ;
+    double am,df,spc, refl,shn;
+    virtual double getT(Ray r) = 0;
+    virtual double getColor(Ray r) = 0 ;
+    virtual void draw() = 0 ;
+    virtual Color getTileColor(Point p) = 0;
+};
+
+
 class Triangle{
 public:
     Point a,b,c ;
-    Color color;
-
+    Color color ;
     Triangle(){
     }
 
     Triangle(Point a,Point b,Point c,Color color){
+        this->color = color ;
         this->a = a ;
         this->b = b ;
         this->c = c ;
-        this->color = color ;
     }
 
     Triangle &operator=(Triangle v)
@@ -210,7 +219,6 @@ public:
         this->a = v.a ;
         this->b = v.b ;
         this->c = v.c ;
-        this->color = v.color ;
 
         return *this;
     }
@@ -236,9 +244,6 @@ public:
         double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point)))/n.dot(r.dir));
         Point p = lineParametric(r.point,r.dir,t) ;
 
-        Vector v1 = Vector().generateVector(a,b);
-        Vector v2 = Vector().generateVector(a,c);
-
         Vector i,j,k ;
 
         i = getCross(a,b,p) ;
@@ -257,7 +262,6 @@ public:
     }
 
     void draw(){
-        glColor3d(color.red,color.green,color.blue) ;
         glBegin(GL_TRIANGLES);
         glVertex3d(a.x,a.y,a.z);
         glVertex3d(b.x,b.y,b.z);
@@ -317,15 +321,15 @@ public:
     }
 };
 
-class Pyramid{
+class Pyramid:public Object{
 public:
     Point low,top;
     double height,width ;
-    Color color ;
     Triangle sides[4];
     Square bottom ;
 
     Pyramid(Point low,double width,double height,Color color){
+        this->type = 1 ;
         this->low = low ;
         this->height = height ;
         this->width = width ;
@@ -345,26 +349,52 @@ public:
         }
     }
 
+    double getT(Ray r){
+        double t_min = INT_MAX ;
+        for(int m=0;m<4;m++){
+            double t = sides[m].getColor(r);
+            if(t>0){
+                if(t_min>t){
+                    t_min = t;
+                }
+            }
+        }
+
+        return t_min ;
+    }
+
+    double getColor(Ray r){
+        double t = getT(r);
+        if(t<=0) return -1;
+        else return t;
+    }
+
     void draw(){
+        glColor3d(color.red,color.green,color.blue) ;
         for(int i=0;i<4;i++){
             sides[i].draw();
         }
     }
+
+    Color getTileColor(Point p){
+        return Color(0,0,0);
+    }
 };
 
-class Sphere{
+class Sphere:public Object{
 public:
     Point center ;
     double radius;
-    Color color ;
 
     Sphere(Point center,double radius,Color color){
         this->center = center ;
         this->radius = radius ;
         this->color = color ;
+        this->type = 1 ;
     }
 
     double getT(Ray r){
+
         Vector r0 = Vector().generateVector(center,r.point);
         Vector rd = r.dir ;
         double a = 1 ;
@@ -435,16 +465,21 @@ public:
         drawSphere(radius,25,25);
         glPopMatrix() ;
     }
+
+    Color getTileColor(Point p){
+        return Color(0,0,0);
+    }
 };
 
-class ChessBoard{
+class ChessBoard:public Object{
 private:
-    int color_map[101][101];
+    int color_map[51][51];
 public:
     ChessBoard(){
+        this->type = 2 ;
         int flag = 1 ;
-        for(int i=0;i<=100;i++){
-            for(int j=0;j<=100;j++){
+        for(int i=0;i<=50;i++){
+            for(int j=0;j<=50;j++){
                 color_map[i][j] = flag%2 ;
                 flag++;
             }
@@ -462,18 +497,19 @@ public:
     }
 
     Color getTileColor(Point p){
-        int c = color_map[(int)floor((p.x/30.0))+50][(int)floor((p.y/30.0))+50] ;
-        if(c){
+        if(color_map[(int)floor(p.x/30.0)+25][(int)floor(p.y/30.0)+25]){
             return Color(0,0,0) ;
         }
-        else return Color(1,1,1);
+        else{
+            return Color(1,1,1) ;
+        }
     }
 
     void draw(){
         int flag=1;
-        for(double i=-30*50;i<=30*50;i+=30){
-            for(double j=-30*50;j<=30*50;j+=30){
-                if(color_map[(int)(i/30.0)+50][(int)(j/30.0)+50]){
+        for(double i=-30*25;i<=30*25;i+=30){
+            for(double j=-30*25;j<=30*25;j+=30){
+                if(color_map[(int)(i/30.0)+25][(int)(j/30.0)+25]){
                     Square(Point(i,j,0),30,Color(0,0,0)).draw();
                 }
                 else{
@@ -485,9 +521,11 @@ public:
     }
 };
 
-vector<Pyramid> pyramids ;
-vector<Sphere> spheres ;
-ChessBoard chessboard ;
+ChessBoard *chessboard ;
+vector<Object*> objects ;
+
+
+
 void init()
 {
     cameraAngle=80;
@@ -497,7 +535,8 @@ void init()
     r = Vector(-1 / (sqrt(2)), 1 / sqrt(2), 0);
     angle = acos(-1.0) / 30; //3 degree angle change
     increment = 5 ;
-    chessboard = ChessBoard();
+    chessboard = new ChessBoard();
+    objects.push_back(chessboard);
     glClearColor(0, 0, 0, 0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -517,14 +556,9 @@ void display()
     glMatrixMode(GL_MODELVIEW);
 
     glPushMatrix();
-    chessboard.draw() ;
 
-    for(int i=0;i<pyramids.size();i++){
-        pyramids[i].draw() ;
-    }
-
-    for(int i=0;i<spheres.size();i++){
-        spheres[i].draw() ;
+    for(int i=0;i<objects.size();i++){
+        objects[i]->draw() ;
     }
 
     glPopMatrix();
@@ -564,7 +598,33 @@ void generateRayTracedImage(){
             Ray ray(pos,v);
             double t_min = INT_MAX ;
 
-            for(int k=0;k<spheres.size();k++){
+            for(int k=0;k<objects.size();k++){
+                if(objects[k]->type==1){
+                    double t = objects[k]->getColor(ray);
+                    if(t>0){
+                        if(t_min>t){
+                            t_min = t;
+                            Color c = objects[k]->color ;
+                            image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                        }
+                    }
+                }
+                if(objects[k]->type==2){
+                    double t = objects[k]->getColor(ray) ;
+                    if(t>0){
+                        if(t_min>t){
+                            t_min = t;
+                            Point p = lineParametric(ray.point,ray.dir,t);
+                            if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
+                                Color c = objects[k]->getTileColor(p);
+                                image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*for(int k=0;k<spheres.size();k++){
                 double t = spheres[k].getColor(ray);
                 if(t>0){
                     if(t_min>t){
@@ -577,14 +637,12 @@ void generateRayTracedImage(){
 
 
             for(int k=0;k<pyramids.size();k++){
-                for(int m=0;m<4;m++){
-                    double t = pyramids[k].sides[m].getColor(ray);
-                    if(t>0){
-                        if(t_min>t){
-                            t_min = t;
-                            Color c = pyramids[k].color ;
-                            image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
-                        }
+                double t = pyramids[k].getColor(ray);
+                if(t>0){
+                    if(t_min>t){
+                        t_min = t;
+                        Color c = pyramids[k].color ;
+                        image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
                     }
                 }
             }
@@ -596,7 +654,7 @@ void generateRayTracedImage(){
                     Color c = chessboard.getTileColor(lineParametric(ray.point,ray.dir,t));
                     image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
                 }
-            }
+            }*/
         }
     }
 
@@ -727,8 +785,8 @@ int main(int argc, char **argv)
             double am,df,spc, refl,shn;
             cin>>am>>df>>spc>>refl;
             cin>>shn;
-            Pyramid pyramid(low,width,height,color);
-            pyramids.push_back(pyramid);
+            Pyramid *pyramid = new Pyramid(low,width,height,color);
+            objects.push_back(pyramid);
         }
 
         if(item_type=="sphere"){
@@ -741,8 +799,8 @@ int main(int argc, char **argv)
             double am,df,spc, refl,shn;
             cin>>am>>df>>spc>>refl;
             cin>>shn;
-            Sphere sphere(center,radius,color);
-            spheres.push_back(sphere);
+            Sphere *sphere = new Sphere(center,radius,color);
+            objects.push_back(sphere);
         }
     }
 
