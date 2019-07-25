@@ -215,8 +215,18 @@ public:
         return *this;
     }
 
-    double getT(Ray r){
+    Vector normal(){
+        Vector n =  Vector().generateVector(a,b).cross(Vector().generateVector(a,c));
+        n.normalize() ;
+        return n ;
+    }
 
+    double getT(Ray r){
+        Vector n = normal() ;
+        double d = -(n.ax*a.x + n.ay*a.y + n.az*a.z) ;
+        double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point))/n.dot(r.dir));
+        Point p = lineParametric(r.point,r.dir,t);
+        //
     }
 
     double getColor(Ray r){
