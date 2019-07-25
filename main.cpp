@@ -46,6 +46,15 @@ public:
         return temp;
     }
 
+    Point operator-(Point v)
+    {
+        Point temp;
+        temp.x = this->x - v.x;
+        temp.y = this->y - v.y;
+        temp.z = this->z - v.z;
+        return temp;
+    }
+
     Point &operator=(Point v)
     {
         this->x = v.x;
@@ -53,6 +62,11 @@ public:
         this->z = v.z;
 
         return *this;
+    }
+
+    double distance(Point a){
+        Point tem = *this - a ;
+        return abs(sqrt(tem.x*tem.x+tem.y*tem.y+tem.z*tem.z)) ;
     }
 
     void print(){
@@ -183,8 +197,34 @@ public:
         this->blue  = blue ;
     }
 
+    Color operator+(double a){
+        Color temp;
+        temp.red = this->red+a;
+        temp.green = this->green+a;
+        temp.blue = this->blue+a;
+        return temp;
+    }
+
+    Color operator*(double a)
+    {
+        Color temp;
+        temp.red = this->red*a;
+        temp.green = this->green*a;
+        temp.blue = this->blue*a;
+        return temp;
+    }
+
+     Color &operator=(Color c)
+    {
+        this->red = c.red;
+        this->green = c.green;
+        this->blue = c.blue;
+
+        return *this;
+    }
+
     void printColor(){
-        cout<<red<<" "<<green<<" "<<blue<<endl ;
+        cout<<red*255<<" "<<green*255<<" "<<blue*255<<endl ;
     }
 };
 
@@ -192,13 +232,15 @@ class Object{
 public:
     int type ;
     Color color ;
-    double am,df,spc, refl,shn;
+    double a,d,s,r,shine;
     virtual double getT(Ray r) = 0;
-    virtual double getColor(Ray r) = 0 ;
+    virtual double getColor(Ray r,Color *color,int level) = 0 ;
     virtual void draw() = 0 ;
     virtual Color getTileColor(Point p) = 0;
 };
 
+vector<Object*> objects ;
+vector<Point> lights ;
 
 class Triangle{
 public:
@@ -328,7 +370,12 @@ public:
     Triangle sides[4];
     Square bottom ;
 
-    Pyramid(Point low,double width,double height,Color color){
+    Pyramid(Point low,double width,double height,Color color,double a,double d,double s,double r,double shine){
+        this->a = a ;
+        this->d = d ;
+        this->s = s ;
+        this->r = r ;
+        this->shine = shine ;
         this->type = 1 ;
         this->low = low ;
         this->height = height ;
@@ -363,7 +410,8 @@ public:
         return t_min ;
     }
 
-    double getColor(Ray r){
+    double getColor(Ray r,Color *out_color,int level){
+        *out_color = this->color ;
         double t = getT(r);
         if(t<=0) return -1;
         else return t;
@@ -386,7 +434,12 @@ public:
     Point center ;
     double radius;
 
-    Sphere(Point center,double radius,Color color){
+    Sphere(Point center,double radius,Color color,double a,double d,double s,double r,double shine){
+        this->a = a ;
+        this->d = d ;
+        this->s = s ;
+        this->r = r ;
+        this->shine = shine ;
         this->center = center ;
         this->radius = radius ;
         this->color = color ;
@@ -418,8 +471,44 @@ public:
         return t ;
     }
 
-    double getColor(Ray r){
+    double getColor(Ray r,Color *out_color,int level){
         double t = getT(r);
+        *out_color = this->color * a ;
+
+        Point ip = lineParametric(r.point,r.dir,t) ;
+        Vector n = Vector().generateVector(center,ip);
+        n.normalize() ;
+        Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
+        for(int i=0;i<lights.size();i++){
+            Vector l_dir = Vector().generateVector(ip,lights[i]);
+            l_dir.normalize();
+            Point s_p = lineParametric(ip,l_dir,1);
+            Vector s_l = Vector().generateVector(s_p,lights[i]);
+            s_l.normalize() ;
+            Ray l_r(s_p,s_l) ;
+            int touch = 0 ;
+            double distance = s_p.distance(lights[i]);
+            for(int k=0;k<objects.size();k++){
+                double t = objects[k]->getT(l_r) ;
+                if(t>0 && t<distance){
+                        touch = 1 ;
+                        break ;
+                }
+            }
+            if(touch==1){
+                Ray indt(lights[i],l_dir*-1);
+                Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
+                double lambert = l_r.dir.dot(n);
+                double phong = pow((r.dir*-1).dot(light_ref),shine) ;
+
+                lambert = max(lambert,0.0);
+                phong = max(phong,0.0);
+
+                *out_color = *out_color + (lambert*d + phong*s) ;
+            }
+        }
+
+
         if(t<=0) return -1;
         else return t;
     }
@@ -490,7 +579,7 @@ public:
         return -(Vector(0,0,1).dot(Vector().generateVector(Point(0,0,0),r.point))/Vector(0,0,1).dot(r.dir));
     }
 
-    double getColor(Ray r){
+    double getColor(Ray r,Color *out_color,int level){
         double t = getT(r) ;
         if(t<=0) return -1 ;
         else return t ;
@@ -522,9 +611,6 @@ public:
 };
 
 ChessBoard *chessboard ;
-vector<Object*> objects ;
-
-
 
 void init()
 {
@@ -599,29 +685,30 @@ void generateRayTracedImage(){
             double t_min = INT_MAX ;
 
             for(int k=0;k<objects.size();k++){
+                Color *c = new Color();
                 if(objects[k]->type==1){
-                    double t = objects[k]->getColor(ray);
+                    double t = objects[k]->getColor(ray,c,recursionLevel);
                     if(t>0){
                         if(t_min>t){
                             t_min = t;
-                            Color c = objects[k]->color ;
-                            image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                            image.set_pixel(j, i,c->red*255,c->green*255,c->blue*255);
                         }
                     }
                 }
                 if(objects[k]->type==2){
-                    double t = objects[k]->getColor(ray) ;
+                    double t = objects[k]->getColor(ray,c,recursionLevel) ;
                     if(t>0){
                         if(t_min>t){
                             t_min = t;
                             Point p = lineParametric(ray.point,ray.dir,t);
                             if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
                                 Color c = objects[k]->getTileColor(p);
-                                image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
+                                image.set_pixel(j, i, c.red*255,c.green*255,c.blue*255);
                             }
                         }
                     }
                 }
+                delete c;
             }
 
             /*for(int k=0;k<spheres.size();k++){
@@ -774,6 +861,7 @@ int main(int argc, char **argv)
     cin>>items ;
 
     for(int i=0;i<items;i++){
+        double a,d,s,r,shine;
         cin>>item_type ;
         if(item_type=="pyramid"){
             Point low;
@@ -782,10 +870,9 @@ int main(int argc, char **argv)
             cin>>width>>height;
             Color color;
             cin>>color.red>>color.green>>color.blue;
-            double am,df,spc, refl,shn;
-            cin>>am>>df>>spc>>refl;
-            cin>>shn;
-            Pyramid *pyramid = new Pyramid(low,width,height,color);
+            cin>>a>>d>>s>>r;
+            cin>>shine;
+            Pyramid *pyramid = new Pyramid(low,width,height,color,a,d,s,r,shine);
             objects.push_back(pyramid);
         }
 
@@ -796,14 +883,20 @@ int main(int argc, char **argv)
             cin>>radius;
             Color color;
             cin>>color.red>>color.green>>color.blue;
-            double am,df,spc, refl,shn;
-            cin>>am>>df>>spc>>refl;
-            cin>>shn;
-            Sphere *sphere = new Sphere(center,radius,color);
+            cin>>a>>d>>s>>r;
+            cin>>shine;
+            Sphere *sphere = new Sphere(center,radius,color,a,d,s,r,shine);
             objects.push_back(sphere);
         }
     }
 
+    cin>>items ;
+    for(int i=0;i<items;i++){
+        Point low;
+        cin>>low.x>>low.y>>low.z;
+        lights.push_back(Point(low.x,low.y,low.z));
+        lights[i].print() ;
+    }
 
     glutInit(&argc, argv);
     glutInitWindowSize(500, 500);
