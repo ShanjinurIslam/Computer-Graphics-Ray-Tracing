@@ -309,14 +309,14 @@ public:
         return -1 ;
     }
 
-    double getColor(Ray r,Color *out_color,int level){
-        double t = getT(r);
+    double getColor(Ray ray,Color *out_color,int level){
+        double t = getT(ray);
         if(t<=0) return -1;
         if(level==0)return t;
         *out_color = this->color * a ;
-        Point ip = lineParametric(r.point,r.dir,t) ;
-        Vector n = normal(r.dir) ;
-        Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
+        Point ip = lineParametric(ray.point,ray.dir,t) ;
+        Vector n = normal(ray.dir) ;
+
         for(int i=0;i<lights.size();i++){
             Vector l_dir = Vector().generateVector(ip,lights[i]);
             l_dir.normalize();
@@ -335,9 +335,9 @@ public:
             }
             if(touch==1){
                 Ray indt(lights[i],l_dir*-1);
-                Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
+                Vector light_ref = n*(2.0*indt.dir.dot(n)) - indt.dir ;
                 double lambert = l_r.dir.dot(n);
-                double phong = pow((r.dir*-1).dot(light_ref),shine) ;
+                double phong = pow((ray.dir*-1).dot(light_ref),shine) ;
 
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
@@ -346,8 +346,9 @@ public:
             }
         }
 
-        if(level<recursionLevel)
+        if(level>0)
         {
+            Vector ref =  n*(2.0*ray.dir.dot(n)) - ray.dir ;
             Point start = lineParametric(ip,ref,1) ;
             Point other = lineParametric(ip,ref,2);
             Vector v = Vector().generateVector(start,other) ;
@@ -363,7 +364,7 @@ public:
                     if(t>0){
                         if(t_min>t){
                             t_min = t;
-                            *out_color = *out_color + *c*this->r ;
+                            *out_color = *out_color + *c*r ;
                         }
                     }
                 }
@@ -374,7 +375,7 @@ public:
                             t_min = t;
                             Point p = lineParametric(reflectionRay.point,reflectionRay.dir,t);
                             if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
-                                *out_color = *out_color + *c*this->r ;
+                                *out_color = *out_color + *c*r ;
                             }
                         }
                     }
@@ -493,17 +494,17 @@ public:
         return t ;
     }
 
-    double getColor(Ray r,Color *out_color,int level){
-        double t = getT(r);
+    double getColor(Ray ray,Color *out_color,int level){
+        double t = getT(ray);
         *out_color = this->color * a ;
         if(t<=0) return -1;
 
         if(level==0)return t;
 
-        Point ip = lineParametric(r.point,r.dir,t) ;
+        Point ip = lineParametric(ray.point,ray.dir,t) ;
         Vector n = Vector().generateVector(center,ip);
         n.normalize() ;
-        Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
+
         for(int i=0;i<lights.size();i++){
             Vector l_dir = Vector().generateVector(ip,lights[i]);
             l_dir.normalize();
@@ -522,9 +523,9 @@ public:
             }
             if(touch==1){
                 Ray indt(lights[i],l_dir*-1);
-                Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
+                Vector light_ref = n*(2.0*indt.dir.dot(n)) - indt.dir ;
                 double lambert = l_r.dir.dot(n);
-                double phong = pow((r.dir*-1).dot(light_ref),shine) ;
+                double phong = pow((ray.dir*-1).dot(light_ref),shine) ;
 
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
@@ -533,8 +534,9 @@ public:
             }
         }
 
-        if(level<recursionLevel)
+        if(level>0)
         {
+            Vector ref = n*(2.0*ray.dir.dot(n)) - ray.dir  ;
             Point start = lineParametric(ip,ref,1) ;
             Point other = lineParametric(ip,ref,2);
             Vector v = Vector().generateVector(start,other) ;
@@ -549,7 +551,7 @@ public:
                     if(t>0){
                         if(t_min>t){
                             t_min = t;
-                            *out_color = *out_color + *c*this->r ;
+                            *out_color = *out_color + *c*r ;
                         }
                     }
                 }
@@ -560,7 +562,7 @@ public:
                             t_min = t;
                             Point p = lineParametric(reflectionRay.point,reflectionRay.dir,t);
                             if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
-                                *out_color = *out_color + *c*this->r ;
+                                *out_color = *out_color + *c*r ;
                             }
                         }
                     }
@@ -638,16 +640,15 @@ public:
         return -(Vector(0,0,1).dot(Vector().generateVector(Point(0,0,0),r.point))/Vector(0,0,1).dot(r.dir));
     }
 
-    double getColor(Ray r,Color *out_color,int level){
-        double t = getT(r);
+    double getColor(Ray ray,Color *out_color,int level){
+        double t = getT(ray);
 
         if(t<=0) return -1;
         if(level==0)return t;
 
-        Point ip = lineParametric(r.point,r.dir,t) ;
+        Point ip = lineParametric(ray.point,ray.dir,t) ;
 
         Vector n = Vector(0,0,1);
-        Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
 
         if((ip.x>=-750 && ip.x<=750) && (ip.y>=-750 && ip.y<=750)){
             *out_color = getTileColor(ip) * 0.2 ;
@@ -669,9 +670,9 @@ public:
                 }
                 if(touch==1){
                     Ray indt(lights[i],l_dir*-1);
-                    Vector light_ref = indt.dir - n*(2.0*indt.dir.dot(n)) ;
+                    Vector light_ref =  n*(2.0*indt.dir.dot(n)) - indt.dir ;
                     double lambert = l_r.dir.dot(n);
-                    double phong = pow((r.dir*-1).dot(light_ref),5) ;
+                    double phong = pow((ray.dir*-1).dot(light_ref),5) ;
 
                     lambert = max(lambert,0.0);
                     phong = max(phong,0.0);
@@ -683,8 +684,9 @@ public:
 
 
 
-        if(level<recursionLevel)
+        if(level>0)
         {
+            Vector ref = n*(2.0*ray.dir.dot(n)) - ray.dir ;
             Point start = lineParametric(ip,ref,1) ;
             Point other = lineParametric(ip,ref,2);
             Vector v = Vector().generateVector(start,other) ;
@@ -699,7 +701,7 @@ public:
                     if(t>0){
                         if(t_min>t){
                             t_min = t;
-                            *out_color = *out_color + *c*this->r ;
+                            *out_color = *out_color + *c*r ;
                         }
                     }
                 }
@@ -710,7 +712,7 @@ public:
                             t_min = t;
                             Point p = lineParametric(reflectionRay.point,reflectionRay.dir,t);
                             if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
-                                *out_color = *out_color + *c*this->r ;
+                                *out_color = *out_color + *c*r ;
                             }
                         }
                     }
