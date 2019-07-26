@@ -348,7 +348,7 @@ public:
 
         if(level>0)
         {
-            Vector ref =  n*(2.0*ray.dir.dot(n)) - ray.dir ;
+            Vector ref =  ray.dir - n*(2.0*ray.dir.dot(n))  ;
             Point start = lineParametric(ip,ref,1) ;
             Point other = lineParametric(ip,ref,2);
             Vector v = Vector().generateVector(start,other) ;
@@ -536,7 +536,7 @@ public:
 
         if(level>0)
         {
-            Vector ref = n*(2.0*ray.dir.dot(n)) - ray.dir  ;
+            Vector ref = ray.dir - n*(2.0*ray.dir.dot(n))   ;
             Point start = lineParametric(ip,ref,1) ;
             Point other = lineParametric(ip,ref,2);
             Vector v = Vector().generateVector(start,other) ;
@@ -651,7 +651,7 @@ public:
         Vector n = Vector(0,0,1);
 
         if((ip.x>=-750 && ip.x<=750) && (ip.y>=-750 && ip.y<=750)){
-            *out_color = getTileColor(ip) * 0.2 ;
+            *out_color = getTileColor(ip) * 0.4 ;
             for(int i=0;i<lights.size();i++){
                 Vector l_dir = Vector().generateVector(ip,lights[i]);
                 l_dir.normalize();
