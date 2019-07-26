@@ -23,7 +23,7 @@
 	<GL/gl.h>
 	<GL/glu.h>
 
-1564098129 source:d:\graphics offline\offline3\ray tracing\main.cpp
+1564125525 source:d:\graphics offline\offline3\ray tracing\main.cpp
 	<iostream>
 	<windows.h>
 	<glut.h>

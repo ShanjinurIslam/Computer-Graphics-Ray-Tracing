@@ -250,37 +250,34 @@ public:
 vector<Object*> objects ;
 vector<Point> lights ;
 
-class Triangle{
+class Triangle:public Object{
 public:
-    Point a,b,c ;
+    Point x,y,z ;
     Color color ;
     Triangle(){
     }
 
-    Triangle(Point a,Point b,Point c,Color color){
-        this->color = color ;
+    Triangle(Point x,Point y,Point z,Color color,double a,double d,double s,double r,double shine){
         this->a = a ;
-        this->b = b ;
-        this->c = c ;
-    }
-
-    Triangle &operator=(Triangle v)
-    {
-        this->a = v.a ;
-        this->b = v.b ;
-        this->c = v.c ;
-
-        return *this;
+        this->d = d ;
+        this->s = s ;
+        this->r = r ;
+        this->shine = shine ;
+        this->type = 1 ;
+        this->color = color ;
+        this->x = x ;
+        this->y = y ;
+        this->z = z ;
     }
 
     Vector normal(){
-        Vector n =  Vector().generateVector(a,b).cross(Vector().generateVector(a,c));
+        Vector n =  Vector().generateVector(x,y).cross(Vector().generateVector(x,z));
         n.normalize() ;
         return n ;
     }
 
     Vector normal(Vector r){
-        Vector n =  Vector().generateVector(a,b).cross(Vector().generateVector(a,c));
+        Vector n =  Vector().generateVector(x,y).cross(Vector().generateVector(x,z));
         if(n.dot(r)>0) n = n*-1 ;
         n.normalize() ;
         return n ;
@@ -297,136 +294,19 @@ public:
 
     double getT(Ray r){
         Vector n = normal() ;
-        double d = -(n.ax*c.x + n.ay*c.y + n.az*c.z) ;
+        double d = -(n.ax*x.x + n.ay*x.y + n.az*x.z) ;
         double t = -((d+n.dot(Vector().generateVector(Point(0,0,0),r.point)))/n.dot(r.dir));
         Point p = lineParametric(r.point,r.dir,t) ;
 
         Vector i,j,k ;
 
-        i = getCross(a,b,p) ;
-        j = getCross(b,c,p) ;
-        k = getCross(c,a,p) ;
+        i = getCross(x,y,p) ;
+        j = getCross(y,z,p) ;
+        k = getCross(z,x,p) ;
 
         if(i.dot(j)>=1 && i.dot(k)>=1) return t ;
 
         return -1 ;
-    }
-
-    double getColor(Ray r){
-        double t = getT(r) ;
-        if(t<=0) return -1 ;
-        else return t ;
-    }
-
-    void draw(){
-        glBegin(GL_TRIANGLES);
-        glVertex3d(a.x,a.y,a.z);
-        glVertex3d(b.x,b.y,b.z);
-        glVertex3d(c.x,c.y,c.z);
-        glEnd();
-    }
-};
-
-class Square{
-public:
-    Point *corner ;
-    Color color;
-    Square(){
-        corner = new Point[4] ;
-        for(int i=0;i<4;i++){
-            corner[i] = Point() ;
-        }
-        color = Color() ;
-    }
-
-    ~Square(){
-        delete[] corner;
-    }
-
-    Square(Point start,double side_length,Color color){
-        corner = new Point[4] ;
-        for(int i=0;i<4;i++){
-            corner[i] = Point() ;
-        }
-        this->color = color ;
-        corner[0] = start ;
-        corner[1] = corner[0] + Point(side_length,0,0);
-        corner[2] = corner[1] + Point(0,side_length,0);
-        corner[3] = corner[0] + Point(0,side_length,0);
-    }
-
-    Square &operator=(Square s)
-    {
-        for(int i=0;i<4;i++){
-            corner[i] = s.corner[i] ;
-        }
-        color = s.color ;
-        return *this ;
-    }
-
-    void draw() {
-        glColor3f(color.red,color.green,color.blue);
-        glBegin(GL_QUADS);
-        glVertex3f(corner[0].x,corner[0].y,corner[0].z);
-        glVertex3f(corner[1].x,corner[1].y,corner[1].z);
-        glVertex3f(corner[2].x,corner[2].y,corner[2].z);
-        glVertex3f(corner[3].x,corner[3].y,corner[3].z);
-        glEnd();
-    }
-    Point* getCornerPoints(){
-        return corner ;
-    }
-};
-
-class Pyramid:public Object{
-public:
-
-    int side_index;
-    Point low,top;
-    double height,width ;
-    Triangle sides[4];
-    Square bottom ;
-
-    Pyramid(Point low,double width,double height,Color color,double a,double d,double s,double r,double shine){
-        this->a = a ;
-        this->d = d ;
-        this->s = s ;
-        this->r = r ;
-        this->side_index = -1 ;
-        this->shine = shine ;
-        this->type = 1 ;
-        this->low = low ;
-        this->height = height ;
-        this->width = width ;
-        this->color = color ;
-        for(int i=0;i<4;i++){
-            sides[i] = Triangle() ;
-        }
-
-        top = low + Point(width/2,width/2,height);
-        bottom = Square(low,width,color) ;
-
-        Point *corners = new Point[4] ;
-        corners = bottom.getCornerPoints() ;
-
-        for(int i=0;i<4;i++){
-            sides[i] = Triangle(corners[i],corners[(i+1)%4],top,color) ;
-        }
-    }
-
-    double getT(Ray r){
-        double t_min = INT_MAX ;
-        for(int m=0;m<4;m++){
-            double t = sides[m].getColor(r);
-            if(t>0){
-                if(t_min>t){
-                    t_min = t;
-                    side_index = m ;
-                }
-            }
-        }
-
-        return t_min ;
     }
 
     double getColor(Ray r,Color *out_color,int level){
@@ -435,7 +315,7 @@ public:
         if(level==0)return t;
         *out_color = this->color * a ;
         Point ip = lineParametric(r.point,r.dir,t) ;
-        Vector n = sides[side_index].normal(r.dir) ;
+        Vector n = normal(r.dir) ;
         Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
         for(int i=0;i<lights.size();i++){
             Vector l_dir = Vector().generateVector(ip,lights[i]);
@@ -507,14 +387,67 @@ public:
     }
 
     void draw(){
-        glColor3d(color.red,color.green,color.blue) ;
-        for(int i=0;i<4;i++){
-            sides[i].draw();
-        }
+        glColor3f(color.red,color.green,color.blue);
+        glBegin(GL_TRIANGLES);
+        glVertex3d(x.x,x.y,x.z);
+        glVertex3d(y.x,y.y,y.z);
+        glVertex3d(z.x,z.y,z.z);
+        glEnd();
     }
 
     Color getTileColor(Point p){
         return Color(0,0,0);
+    }
+};
+
+class Square{
+public:
+    Point *corner ;
+    Color color;
+    Square(){
+        corner = new Point[4] ;
+        for(int i=0;i<4;i++){
+            corner[i] = Point() ;
+        }
+        color = Color() ;
+    }
+
+    ~Square(){
+        delete[] corner;
+    }
+
+    Square(Point start,double side_length,Color color){
+        corner = new Point[4] ;
+        for(int i=0;i<4;i++){
+            corner[i] = Point() ;
+        }
+        this->color = color ;
+        corner[0] = start ;
+        corner[1] = corner[0] + Point(side_length,0,0);
+        corner[2] = corner[1] + Point(0,side_length,0);
+        corner[3] = corner[0] + Point(0,side_length,0);
+    }
+
+    Square &operator=(Square s)
+    {
+        for(int i=0;i<4;i++){
+            corner[i] = s.corner[i] ;
+        }
+        color = s.color ;
+        return *this ;
+    }
+
+    void draw() {
+        glColor3f(color.red,color.green,color.blue);
+        glBegin(GL_QUADS);
+        glVertex3f(corner[0].x,corner[0].y,corner[0].z);
+        glVertex3f(corner[1].x,corner[1].y,corner[1].z);
+        glVertex3f(corner[2].x,corner[2].y,corner[2].z);
+        glVertex3f(corner[3].x,corner[3].y,corner[3].z);
+        glEnd();
+    }
+    Point* getCornerPoints(){
+        return corner ;
     }
 };
 
@@ -717,7 +650,7 @@ public:
         Vector ref = r.dir - n*(2.0*r.dir.dot(n)) ;
 
         if((ip.x>=-750 && ip.x<=750) && (ip.y>=-750 && ip.y<=750)){
-            *out_color = getTileColor(ip) * 0.4 ;
+            *out_color = getTileColor(ip) * 0.2 ;
             for(int i=0;i<lights.size();i++){
                 Vector l_dir = Vector().generateVector(ip,lights[i]);
                 l_dir.normalize();
@@ -853,6 +786,14 @@ void display()
         objects[i]->draw() ;
     }
 
+    for(int i=0;i<lights.size();i++){
+        glColor3f(1.0,1.0,1.0);
+        glPointSize(2);
+        glBegin(GL_POINTS);
+        glVertex3d(lights[i].x,lights[i].y,lights[i].z);
+        glEnd();
+    }
+
     glPopMatrix();
 
     glutSwapBuffers();
@@ -908,8 +849,7 @@ void generateRayTracedImage(){
                             t_min = t;
                             Point p = lineParametric(ray.point,ray.dir,t);
                             if((p.x>=-750 && p.x<=750) && (p.y>=-750 && p.y<=750)){
-                                Color c = objects[k]->getTileColor(p);
-                                image.set_pixel(j, i, c.red*255,c.green*255,c.blue*255);
+                                image.set_pixel(j, i, c->red*255,c->green*255,c->blue*255);
                             }
                         }
                     }
@@ -1078,8 +1018,17 @@ int main(int argc, char **argv)
             cin>>color.red>>color.green>>color.blue;
             cin>>a>>d>>s>>r;
             cin>>shine;
-            Pyramid *pyramid = new Pyramid(low,width,height,color,a,d,s,r,shine);
-            objects.push_back(pyramid);
+            Square bottom ;
+            Point top = low + Point(width/2,width/2,height);
+            bottom = Square(low,width,color) ;
+
+            Point *corners = new Point[4] ;
+            corners = bottom.getCornerPoints() ;
+
+            for(int i=0;i<4;i++){
+                Triangle *t = new Triangle(corners[i],corners[(i+1)%4],top,color,a,d,s,r,shine) ;
+                objects.push_back(t);
+            }
         }
 
         if(item_type=="sphere"){
