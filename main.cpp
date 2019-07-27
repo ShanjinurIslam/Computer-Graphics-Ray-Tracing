@@ -244,7 +244,6 @@ public:
     virtual double getT(Ray r) = 0;
     virtual double getColor(Ray r,Color *color,int level) = 0 ;
     virtual void draw() = 0 ;
-    virtual Color getTileColor(Point p) = 0;
 };
 
 vector<Object*> objects ;
@@ -394,10 +393,6 @@ public:
         glVertex3d(y.x,y.y,y.z);
         glVertex3d(z.x,z.y,z.z);
         glEnd();
-    }
-
-    Color getTileColor(Point p){
-        return Color(0,0,0);
     }
 };
 
@@ -615,10 +610,6 @@ public:
         drawSphere(radius,25,25);
         glPopMatrix() ;
     }
-
-    Color getTileColor(Point p){
-        return Color(0,0,0);
-    }
 };
 
 class ChessBoard:public Object{
@@ -651,7 +642,13 @@ public:
         Vector n = Vector(0,0,1);
 
         if((ip.x>=-750 && ip.x<=750) && (ip.y>=-750 && ip.y<=750)){
-            *out_color = getTileColor(ip) * 0.4 ;
+            if(color_map[(int)floor(ip.x/30.0)+25][(int)floor(ip.y/30.0)+25]){
+                    *out_color = Color(0,0,0) ;
+            }
+            else{
+                    *out_color = Color(1,1,1) ;
+            }
+            *out_color = *out_color * 0.8;
             for(int i=0;i<lights.size();i++){
                 Vector l_dir = Vector().generateVector(ip,lights[i]);
                 l_dir.normalize();
@@ -727,12 +724,7 @@ public:
 
 
     Color getTileColor(Point p){
-        if(color_map[(int)floor(p.x/30.0)+25][(int)floor(p.y/30.0)+25]){
-            return Color(0,0,0) ;
-        }
-        else{
-            return Color(1,1,1) ;
-        }
+
     }
 
     void draw(){
