@@ -21,8 +21,6 @@ double plane_height=500;
 double plane_width=500;
 double width, height;
 double recursionLevel;
-double cameraHeight;
-double cameraAngle;
 double angle;
 double increment;
 int drawgrid;
@@ -74,6 +72,8 @@ public:
     }
 
 }pos;
+
+vector<Point> lights ;
 
 class Vector
 {
@@ -247,7 +247,6 @@ public:
 };
 
 vector<Object*> objects ;
-vector<Point> lights ;
 
 class Triangle:public Object{
 public:
@@ -335,12 +334,11 @@ public:
             if(touch==1){
                 Ray indt(lights[i],l_dir*-1);
                 Vector light_ref = n*(2.0*indt.dir.dot(n)) - indt.dir ;
+                light_ref.normalize();
                 double lambert = l_r.dir.dot(n);
                 double phong = pow((ray.dir*-1).dot(light_ref),shine) ;
-
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
-
                 *out_color = *out_color + (lambert*d + phong*s) ;
             }
         }
@@ -480,22 +478,15 @@ public:
         double alpha = (-b + sqrt(d))/2 ;
         double beta = (-b - sqrt(d))/2 ;
 
-        double t = min(alpha,beta);
-
-        if(t<=0){
-            t = max(alpha,beta);
-        }
-
-        return t ;
+        return min(alpha,beta);
     }
 
     double getColor(Ray ray,Color *out_color,int level){
         double t = getT(ray);
-        *out_color = this->color * a ;
         if(t<=0) return -1;
-
         if(level==0)return t;
 
+        *out_color = this->color * a ;
         Point ip = lineParametric(ray.point,ray.dir,t) ;
         Vector n = Vector().generateVector(center,ip);
         n.normalize() ;
@@ -519,9 +510,9 @@ public:
             if(touch==1){
                 Ray indt(lights[i],l_dir*-1);
                 Vector light_ref = n*(2.0*indt.dir.dot(n)) - indt.dir ;
+                light_ref.normalize();
                 double lambert = l_r.dir.dot(n);
                 double phong = pow((ray.dir*-1).dot(light_ref),shine) ;
-
                 lambert = max(lambert,0.0);
                 phong = max(phong,0.0);
 
@@ -648,7 +639,7 @@ public:
             else{
                     *out_color = Color(1,1,1) ;
             }
-            *out_color = *out_color * 0.8;
+            *out_color = *out_color * 0.4;
             for(int i=0;i<lights.size();i++){
                 Vector l_dir = Vector().generateVector(ip,lights[i]);
                 l_dir.normalize();
@@ -667,14 +658,13 @@ public:
                 }
                 if(touch==1){
                     Ray indt(lights[i],l_dir*-1);
-                    Vector light_ref =  n*(2.0*indt.dir.dot(n)) - indt.dir ;
+                    Vector light_ref = n*(2.0*indt.dir.dot(n)) - indt.dir ;
+                    light_ref.normalize();
                     double lambert = l_r.dir.dot(n);
-                    double phong = pow((ray.dir*-1).dot(light_ref),5) ;
-
+                    double phong = pow((ray.dir*-1).dot(light_ref),5);
                     lambert = max(lambert,0.0);
                     phong = max(phong,0.0);
-
-                    *out_color = *out_color + (lambert*0.2 + phong*0.2) ;
+                    *out_color = *out_color + (lambert*0.2 + phong*0.2);
                 }
             }
         }
@@ -720,15 +710,7 @@ public:
 
         return t ;
     }
-
-
-
-    Color getTileColor(Point p){
-
-    }
-
     void draw(){
-        int flag=1;
         for(double i=-30*25;i<=30*25;i+=30){
             for(double j=-30*25;j<=30*25;j+=30){
                 if(color_map[(int)(i/30.0)+25][(int)(j/30.0)+25]){
@@ -737,7 +719,6 @@ public:
                 else{
                     Square(Point(i,j,0),30,Color(1,1,1)).draw();
                 }
-                flag++;
             }
         }
     }
@@ -747,8 +728,7 @@ ChessBoard *chessboard ;
 
 void init()
 {
-    cameraAngle=80;
-    pos = Point(50, 50, 50);
+    pos = Point(100, 100, 50);
     u = Vector(0, 0, 1); //z axis is up vector
     l = Vector(-1 / (sqrt(2)), -1 / sqrt(2), 0);
     r = Vector(-1 / (sqrt(2)), 1 / sqrt(2), 0);
@@ -759,7 +739,7 @@ void init()
     glClearColor(0, 0, 0, 0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(cameraAngle, 1, 1, 1000.0);
+    gluPerspective(90, 1, 1, 1000.0);
 }
 
 void display()
@@ -850,38 +830,6 @@ void generateRayTracedImage(){
                 }
                 delete c;
             }
-
-            /*for(int k=0;k<spheres.size();k++){
-             double t = spheres[k].getColor(ray);
-             if(t>0){
-             if(t_min>t){
-             t_min = t;
-             Color c = spheres[k].color ;
-             image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
-             }
-             }
-             }
-
-
-             for(int k=0;k<pyramids.size();k++){
-             double t = pyramids[k].getColor(ray);
-             if(t>0){
-             if(t_min>t){
-             t_min = t;
-             Color c = pyramids[k].color ;
-             image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
-             }
-             }
-             }
-
-             double t = chessboard.getColor(ray) ;
-             if(t>0){
-             if(t_min>t){
-             t_min = t;
-             Color c = chessboard.getTileColor(lineParametric(ray.point,ray.dir,t));
-             image.set_pixel(j, i, (int) c.red*255, (int) c.green*255,(int) c.blue*255);
-             }
-             }*/
         }
     }
 
@@ -905,6 +853,7 @@ void keyboardListener(unsigned char key, int x, int y)
     switch (key)
     {
         case '0':
+            cout<<"Generating.."<<endl ;
             generateRayTracedImage() ;
             break ;
         case '1':
@@ -1044,7 +993,6 @@ int main(int argc, char **argv)
         Point low;
         cin>>low.x>>low.y>>low.z;
         lights.push_back(Point(low.x,low.y,low.z));
-        lights[i].print() ;
     }
 
     glutInit(&argc, argv);
